@@ -2,12 +2,11 @@ cmake_minimum_required(VERSION 3.5)
 
 project(mypython)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
-add_executable(
-  mypython
-  src/mypython.cpp
-)
+add_subdirectory (src)
+add_subdirectory (test)
 
-target_include_directories(mypython PUBLIC include)
-target_include_directories(mypython PRIVATE src)
+enable_testing ()
+
+add_test (NAME test COMMAND test_libmypython)
