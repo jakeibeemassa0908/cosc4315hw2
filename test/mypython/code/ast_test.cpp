@@ -201,7 +201,7 @@ TEST_CASE("Accepts Statement variant", "[eval_stmt]") {
 
   Code::eval_stmt(stmt, stack);
 
-  REQUIRE(stack.bindings.count("foo") > 0);
+  REQUIRE(stack.globals.count("foo") > 0);
 }
 
 TEST_CASE("Branches if statements", "[eval_stmt]") {
@@ -232,7 +232,7 @@ TEST_CASE("Branches if statements", "[eval_stmt]") {
   Code::Stack stack;
   Code::eval_stmt(if_stmt, stack);
 
-  REQUIRE(MyPython::cmp(*stack.bindings.at("foo"), 5) == 0);
+  REQUIRE(MyPython::cmp(*stack.globals.at("foo"), 5) == 0);
 }
 
 TEST_CASE("Assigns values", "[eval_stmt]") {
@@ -252,7 +252,7 @@ TEST_CASE("Assigns values", "[eval_stmt]") {
     assign.value = std::make_shared<Code::Expression>(num);
 
     Code::eval_stmt(assign, stack);
-    REQUIRE(MyPython::cmp(*stack.bindings.at("foo"), 5) == 0);
+    REQUIRE(MyPython::cmp(*stack.globals.at("foo"), 5) == 0);
   }
 
   SECTION("Overwrites a value to an existing binding") {
@@ -264,7 +264,7 @@ TEST_CASE("Assigns values", "[eval_stmt]") {
     assign.value = std::make_shared<Code::Expression>(num);
 
     Code::eval_stmt(assign, stack);
-    REQUIRE(MyPython::cmp(*stack.bindings.at("foo"), 30000) == 0);
+    REQUIRE(MyPython::cmp(*stack.globals.at("foo"), 30000) == 0);
   }
 }
 
@@ -279,7 +279,8 @@ TEST_CASE("Can evaluate expressions", "[eval_stmt]") {
 
   Code::Stack stack;
   eval_stmt(expr_stmt, stack);
-  REQUIRE(stack.bindings.empty());
+  REQUIRE(stack.globals.empty());
+  REQUIRE(stack.locals.empty());
 }
 
 TEST_CASE("Can print expressions", "[eval_stmt]") {

@@ -134,7 +134,9 @@ struct Return {
 };
 
 struct Stack {
-  BindingMap bindings = {};
+  BindingMap globals = {};
+  BindingMap locals = {};
+  std::vector<std::string> call_stack = {};
 };
 
 struct Str {

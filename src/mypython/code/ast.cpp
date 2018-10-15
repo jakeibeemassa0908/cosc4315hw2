@@ -118,7 +118,18 @@ auto eval_expr(Str const& expr, Stack const& stack) -> std::shared_ptr<Term> {
 }
 
 auto eval_expr(Name const& expr, Stack const& stack) -> std::shared_ptr<Term> {
-  return stack.bindings.at(expr.id);  // TODO: FIX THIS
+  // TODO: FIX THIS
+  // We should be throwing a Python exception here.
+
+  if (stack.call_stack.empty()) {
+    return stack.globals.at(expr.id);
+  } else {
+    if (stack.locals.count(expr.id) > 0) {
+      return stack.locals.at(expr.id);
+    } else {
+      return stack.globals.at(expr.id);
+    }
+  }
 }
 
 auto eval_expr(NameConstant const& expr, Stack const& stack)
@@ -162,7 +173,13 @@ void eval_stmt(Assign const& stmt, Stack& stack) {
 
   if (stmt.targets.size() == 1) {
     auto visitor = Util::make_visitor(
-        [&](Name const& name) { stack.bindings[name.id] = result; },
+        [&](Name const& name) {
+          if (stack.call_stack.empty()) {
+            stack.globals[name.id] = result;
+          } else {
+            stack.locals[name.id] = result;
+          }
+        },
         [](auto other) { throw "Not yet implemented"; });
 
     mpark::visit(visitor, stmt.targets.front());
