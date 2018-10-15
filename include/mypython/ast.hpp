@@ -1,44 +1,40 @@
-#ifndef COSC4315HW2_SRC_MYPYTHON_CODE_HPP_
-#define COSC4315HW2_SRC_MYPYTHON_CODE_HPP_
+#ifndef COSC4315HW2_SRC_MYPYTHON_AST_HPP_
+#define COSC4315HW2_SRC_MYPYTHON_AST_HPP_
 
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <vector>
 
 #include <mpark/variant.hpp>
-#include <mypython/term.hpp>
 
 namespace MyPython {
-namespace Code {
+struct Assign;
 struct BoolOp;
 struct BinOp;
 struct Compare;
-struct Num;
-struct Str;
-struct NameConstant;
+struct Expr;
+struct If;
+struct Module;
 struct Name;
+struct NameConstant;
+struct Num;
+struct Print;
+struct PyInt;
+struct PyBool;
+struct PyNoneType;
+struct PyStr;
+struct Return;
+struct Str;
 
 using Expression =
     mpark::variant<BoolOp, BinOp, Compare, Num, Str, NameConstant, Name>;
-
-struct Return;
-struct Assign;
-struct If;
-struct Expr;
-struct Print;
-
 using Statement = mpark::variant<Return, Assign, If, Expr, Print>;
-
-struct Module;
-
-using AST = mpark::variant<Module, Expression, Statement>;
-
-using BindingMap = std::map<std::string, std::shared_ptr<Term>>;
+using PyObj = mpark::variant<PyNoneType, PyBool, PyInt, PyStr>;
+using BindingMap = std::map<std::string, std::shared_ptr<PyObj>>;
 
 enum class BoolOperator { and_op, or_op };
-
 enum class CmpOp { eq, eq_not, lt, lt_eq, gt, gt_eq, is, is_not, in, not_in };
 
 enum class Op {
@@ -63,16 +59,20 @@ struct Metadata {
   int line = 1;
 };
 
-struct BoolOp {
-  std::shared_ptr<Expression> left = nullptr;
-  BoolOperator op = BoolOperator::and_op;
-  std::shared_ptr<Expression> right = nullptr;
+struct EarlyReturn {
+  std::shared_ptr<PyObj> result = nullptr;
 };
 
 struct Assign {
   std::vector<Expression> targets = {};
   std::shared_ptr<Expression> value = nullptr;
   Metadata meta = {};
+};
+
+struct BoolOp {
+  std::shared_ptr<Expression> left = nullptr;
+  BoolOperator op = BoolOperator::and_op;
+  std::shared_ptr<Expression> right = nullptr;
 };
 
 struct BinOp {
@@ -87,10 +87,6 @@ struct Compare {
   std::vector<CmpOp> ops = {};
   std::vector<Expression> comparators = {};
   Metadata meta = {};
-};
-
-struct EarlyReturn {
-  std::shared_ptr<Term> result = nullptr;
 };
 
 struct Expr {
@@ -129,6 +125,25 @@ struct Print {
   std::ostream* file = &std::cout;
 };
 
+struct PyInt {
+  long value = 0;
+
+  PyInt() = default;
+  PyInt(long value) : value(value) {}
+};
+
+struct PyBool : public PyInt {};
+
+struct PyNoneType {};
+
+struct PyStr {
+  std::string value = "";
+
+  PyStr() = default;
+  PyStr(std::string const& value) : value(value) {}
+  PyStr(char const* cstr) : PyStr(std::string(cstr)) {}
+};
+
 struct Return {
   std::shared_ptr<Expression> value = nullptr;
 };
@@ -144,22 +159,24 @@ struct Str {
   Metadata meta = {};
 };
 
+void eval_ast(Module const& ast, Stack& stack);
+
 auto eval_expr(Expression const& expr, Stack const& stack = {})
-    -> std::shared_ptr<Term>;
+    -> std::shared_ptr<PyObj>;
 auto eval_expr(BoolOp const& expr, Stack const& stack = {})
-    -> std::shared_ptr<Term>;
+    -> std::shared_ptr<PyObj>;
 auto eval_expr(BinOp const& expr, Stack const& stack = {})
-    -> std::shared_ptr<Term>;
+    -> std::shared_ptr<PyObj>;
 auto eval_expr(Compare const& expr, Stack const& stack = {})
-    -> std::shared_ptr<Term>;
+    -> std::shared_ptr<PyObj>;
 auto eval_expr(Num const& expr, Stack const& stack = {})
-    -> std::shared_ptr<Term>;
+    -> std::shared_ptr<PyObj>;
 auto eval_expr(Str const& expr, Stack const& stack = {})
-    -> std::shared_ptr<Term>;
+    -> std::shared_ptr<PyObj>;
 auto eval_expr(Name const& expr, Stack const& stack = {})
-    -> std::shared_ptr<Term>;
+    -> std::shared_ptr<PyObj>;
 auto eval_expr(NameConstant const& expr, Stack const& stack = {})
-    -> std::shared_ptr<Term>;
+    -> std::shared_ptr<PyObj>;
 
 void eval_stmt(Statement const& stmt, Stack& stack);
 void eval_stmt(Return const& stmt, Stack& stack);
@@ -168,8 +185,33 @@ void eval_stmt(If const& stmt, Stack& stack);
 void eval_stmt(Expr const& stmt, Stack& stack);
 void eval_stmt(Print const& stmt, Stack& stack);
 
-void eval_ast(Module const& ast, Stack& stack);
-}  // namespace Code
+auto add(PyObj const& a, PyObj const& b) -> PyObj;
+auto add(PyInt const& a, PyInt const& b) -> PyObj;
+auto add(PyStr const& a, PyStr const& b) -> PyObj;
+
+auto cmp(PyObj const& a, PyObj const& b) -> int;
+auto cmp(PyStr const& a, PyStr const& b) -> int;
+auto cmp(PyInt const& a, PyInt const& b) -> int;
+
+auto div(PyObj const& a, PyObj const& b) -> PyObj;
+auto div(PyInt const& a, PyInt const& b) -> PyObj;
+
+auto mul(PyObj const& a, PyObj const& b) -> PyObj;
+auto mul(PyStr const& a, PyInt const& b) -> PyObj;
+auto mul(PyInt const& a, PyInt const& b) -> PyObj;
+
+auto str(PyObj const& term) -> PyStr;
+auto str(PyNoneType const& n) -> PyStr;
+auto str(PyBool const& b) -> PyStr;
+auto str(PyInt const& i) -> PyStr;
+auto str(PyStr const& str) -> PyStr;
+
+auto sub(PyObj const& a, PyObj const& b) -> PyObj;
+auto sub(PyInt const& a, PyInt const& b) -> PyObj;
+
+auto truth_value(PyObj const& term) -> bool;
+auto truth_value(PyInt const& i) -> bool;
+auto truth_value(PyStr const& str) -> bool;
 }  // namespace MyPython
 
 #endif

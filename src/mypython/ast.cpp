@@ -1,21 +1,58 @@
-#include <mypython/code/ast.hpp>
+#include <mypython/ast.hpp>
 
 #include <util/variant.hpp>
 
 namespace MyPython {
-namespace Code {
+// Non-matching functions.
+namespace {
+template <class T1, class T2>
+auto cmp(T1 const& a, T2 const& b) -> int {
+  throw "Error comparing two types";
+}
+
+template <class T>
+auto str(T const&) -> Str {
+  throw "Error converting to str";
+}
+
+template <class T>
+auto truth_value(T const&) -> bool {
+  throw "No truth value exists";
+}
+
+template <class T1, class T2>
+auto add(T1 const& a, T2 const& b) -> PyObj {
+  throw "Cannot add two types";
+}
+
+template <class T1, class T2>
+auto sub(T1 const& a, T2 const& b) -> PyObj {
+  throw "Cannot add sub types";
+}
+
+template <class T1, class T2>
+auto mul(T1 const& a, T2 const& b) -> PyObj {
+  throw "Cannot mul two types";
+}
+
+template <class T1, class T2>
+auto div(T1 const& a, T2 const& b) -> PyObj {
+  throw "Cannot div two types";
+}
+}  // namespace
+
 auto eval_expr(Expression const& expr, Stack const& stack)
-    -> std::shared_ptr<Term> {
+    -> std::shared_ptr<PyObj> {
   auto visitor = [&](auto&& expr) { return eval_expr(expr, stack); };
   return mpark::visit(visitor, expr);
 }
 
 auto eval_expr(BoolOp const& expr, Stack const& stack)
-    -> std::shared_ptr<Term> {
-  Term left_term = *eval_expr(*expr.left);
-  Term right_term = *eval_expr(*expr.right);
+    -> std::shared_ptr<PyObj> {
+  PyObj left_term = *eval_expr(*expr.left);
+  PyObj right_term = *eval_expr(*expr.right);
 
-  Term result;
+  PyObj result;
   switch (expr.op) {
     case BoolOperator::and_op:
       result = truth_value(left_term) && truth_value(right_term);
@@ -27,10 +64,11 @@ auto eval_expr(BoolOp const& expr, Stack const& stack)
       throw "Invalid bool operator";
       break;
   }
-  return std::make_shared<Term>(result);
+  return std::make_shared<PyObj>(result);
 }
 
-auto eval_expr(BinOp const& expr, Stack const& stack) -> std::shared_ptr<Term> {
+auto eval_expr(BinOp const& expr, Stack const& stack)
+    -> std::shared_ptr<PyObj> {
   // enum class Op {
   //   add,
   //   sub,
@@ -47,10 +85,10 @@ auto eval_expr(BinOp const& expr, Stack const& stack) -> std::shared_ptr<Term> {
   //   floor_div
   // };
 
-  Term left_eval = *eval_expr(*expr.left, stack);
-  Term right_eval = *eval_expr(*expr.right, stack);
+  PyObj left_eval = *eval_expr(*expr.left, stack);
+  PyObj right_eval = *eval_expr(*expr.right, stack);
 
-  Term result;
+  PyObj result;
   switch (expr.op) {
     case Op::add:
       result = add(left_eval, right_eval);
@@ -68,11 +106,11 @@ auto eval_expr(BinOp const& expr, Stack const& stack) -> std::shared_ptr<Term> {
       throw "BinOp not yet implemented";
       break;
   }
-  return std::make_shared<Term>(result);
+  return std::make_shared<PyObj>(result);
 }
 
 auto eval_expr(Compare const& expr, Stack const& stack)
-    -> std::shared_ptr<Term> {
+    -> std::shared_ptr<PyObj> {
   if (expr.ops.size() != expr.comparators.size())
     throw "Not enough ops/comparators";
 
@@ -106,18 +144,18 @@ auto eval_expr(Compare const& expr, Stack const& stack)
     }
   }
 
-  return std::make_shared<Term>(result);
+  return std::make_shared<PyObj>(result);
 }
 
-auto eval_expr(Num const& expr, Stack const& stack) -> std::shared_ptr<Term> {
-  return std::make_shared<Term>(expr.n);
+auto eval_expr(Num const& expr, Stack const& stack) -> std::shared_ptr<PyObj> {
+  return std::make_shared<PyObj>(expr.n);
 }
 
-auto eval_expr(Str const& expr, Stack const& stack) -> std::shared_ptr<Term> {
-  return std::make_shared<Term>(expr.s);
+auto eval_expr(Str const& expr, Stack const& stack) -> std::shared_ptr<PyObj> {
+  return std::make_shared<PyObj>(expr.s);
 }
 
-auto eval_expr(Name const& expr, Stack const& stack) -> std::shared_ptr<Term> {
+auto eval_expr(Name const& expr, Stack const& stack) -> std::shared_ptr<PyObj> {
   // TODO: FIX THIS
   // We should be throwing a Python exception here.
 
@@ -133,28 +171,28 @@ auto eval_expr(Name const& expr, Stack const& stack) -> std::shared_ptr<Term> {
 }
 
 auto eval_expr(NameConstant const& expr, Stack const& stack)
-    -> std::shared_ptr<Term> {
-  Term result;
+    -> std::shared_ptr<PyObj> {
+  PyObj result;
   switch (expr.value) {
     case Singleton::none:
-      result = NoneType();
+      result = PyNoneType();
       break;
     case Singleton::true_value:
       result = [] {
-        Bool bool_value;
-        bool_value.value = true;
-        return bool_value;
+        PyBool b;
+        b.value = true;
+        return b;
       }();
       break;
     case Singleton::false_value:
       result = [] {
-        Bool bool_value;
-        bool_value.value = false;
-        return bool_value;
+        PyBool b;
+        b.value = false;
+        return b;
       }();
       break;
   }
-  return std::make_shared<Term>(result);
+  return std::make_shared<PyObj>(result);
 }
 
 void eval_stmt(Statement const& stmt, Stack& stack) {
@@ -224,5 +262,88 @@ void eval_ast(Module const& ast, Stack& stack) {
     eval_stmt(stmt, stack);
   }
 }
-}  // namespace Code
+
+auto add(PyObj const& a, PyObj const& b) -> PyObj {
+  auto visitor = [](auto&& a, auto&& b) { return add(a, b); };
+  return mpark::visit(visitor, a, b);
+}
+
+auto add(PyInt const& a, PyInt const& b) -> PyObj {
+  return PyInt(a.value + b.value);
+}
+auto add(PyStr const& a, PyStr const& b) -> PyObj {
+  return PyStr(a.value + b.value);
+}
+
+auto cmp(PyObj const& a, PyObj const& b) -> int {
+  auto visitor = [](auto&& a, auto&& b) { return cmp(a, b); };
+  return mpark::visit(visitor, a, b);
+}
+
+auto cmp(PyInt const& a, PyInt const& b) -> int {
+  if (a.value < b.value)
+    return -1;
+  else if (a.value > b.value)
+    return 1;
+  else
+    return 0;
+}
+
+auto cmp(PyStr const& a, PyStr const& b) -> int {
+  return a.value.compare(b.value);
+}
+
+auto div(PyObj const& a, PyObj const& b) -> PyObj {
+  auto visitor = [](auto&& a, auto&& b) { return div(a, b); };
+  return mpark::visit(visitor, a, b);
+}
+
+auto div(PyInt const& a, PyInt const& b) -> PyObj {
+  return PyInt(a.value / b.value);
+}
+
+auto mul(PyObj const& a, PyObj const& b) -> PyObj {
+  auto visitor = [](auto&& a, auto&& b) { return mul(a, b); };
+  return mpark::visit(visitor, a, b);
+}
+
+auto mul(PyInt const& a, PyInt const& b) -> PyObj {
+  return PyInt(a.value * b.value);
+}
+
+auto mul(PyStr const& a, PyInt const& b) -> PyObj {
+  PyStr result;
+  for (int i = 0; i < b.value; ++i) {
+    result.value += a.value;
+  }
+  return result;
+}
+
+auto str(PyObj const& term) -> PyStr {
+  auto visitor = [](auto&& term) { return str(term); };
+  return mpark::visit(visitor, term);
+}
+
+auto str(PyInt const& i) -> PyStr { return std::to_string(i.value); }
+auto str(PyStr const& str) -> PyStr { return str; }
+auto str(PyNoneType const& n) -> PyStr { return "None"; }
+auto str(PyBool const& b) -> PyStr { return (b.value != 0) ? "True" : "False"; }
+
+auto sub(PyObj const& a, PyObj const& b) -> PyObj {
+  auto visitor = [](auto&& a, auto&& b) { return sub(a, b); };
+  return mpark::visit(visitor, a, b);
+}
+
+auto sub(PyInt const& a, PyInt const& b) -> PyObj {
+  return PyInt(a.value - b.value);
+}
+
+auto truth_value(PyObj const& term) -> bool {
+  auto visitor = [](auto&& term) { return truth_value(term); };
+  return mpark::visit(visitor, term);
+}
+
+auto truth_value(PyNoneType const& n) -> bool { return false; }
+auto truth_value(PyStr const& str) -> bool { return !str.value.empty(); }
+auto truth_value(PyInt const& i) -> bool { return i.value != 0; }
 }  // namespace MyPython

@@ -1,7 +1,6 @@
 add_library (
   libmypython
-  mypython/term.cpp
-  mypython/code/ast.cpp
+  mypython/ast.cpp
 )
 
 target_include_directories(libmypython PUBLIC ../include)
