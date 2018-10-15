@@ -167,6 +167,21 @@ TEST_CASE("Evalutes num literals", "[eval_expr]") {
   REQUIRE(MyPython::cmp(result, MyPython::Int(1337)) == 0);
 }
 
+TEST_CASE("Evalutes return statements", "[eval_stmt]") {
+  namespace Code = MyPython::Code;
+
+  Code::NameConstant nc;
+  nc.value = Code::Singleton::true_value;
+
+  Code::Return return_stmt;
+  return_stmt.value = std::make_shared<Code::Expression>(nc);
+
+  Code::Stack stack;
+
+  REQUIRE_THROWS_AS([&] { Code::eval_stmt(return_stmt, stack); }(),
+                    Code::EarlyReturn);
+}
+
 TEST_CASE("Accepts Statement variant", "[eval_stmt]") {
   namespace Code = MyPython::Code;
 

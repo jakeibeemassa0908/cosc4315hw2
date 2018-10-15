@@ -151,6 +151,12 @@ void eval_stmt(Statement const& stmt, Stack& stack) {
   return mpark::visit(visitor, stmt);
 }
 
+void eval_stmt(Return const& stmt, Stack& stack) {
+  EarlyReturn er;
+  er.result = eval_expr(*stmt.value, stack);
+  throw er;
+}
+
 void eval_stmt(Assign const& stmt, Stack& stack) {
   auto result = eval_expr(*stmt.value, stack);
 

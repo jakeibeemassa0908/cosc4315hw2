@@ -23,12 +23,13 @@ struct Name;
 using Expression =
     mpark::variant<BoolOp, BinOp, Compare, Num, Str, NameConstant, Name>;
 
+struct Return;
 struct Assign;
 struct If;
 struct Expr;
 struct Print;
 
-using Statement = mpark::variant<Assign, If, Expr, Print>;
+using Statement = mpark::variant<Return, Assign, If, Expr, Print>;
 
 struct Module;
 
@@ -88,6 +89,10 @@ struct Compare {
   Metadata meta = {};
 };
 
+struct EarlyReturn {
+  std::shared_ptr<Term> result = nullptr;
+};
+
 struct Expr {
   std::shared_ptr<Expression> value = nullptr;
   Metadata meta = {};
@@ -124,6 +129,10 @@ struct Print {
   std::ostream* file = &std::cout;
 };
 
+struct Return {
+  std::shared_ptr<Expression> value = nullptr;
+};
+
 struct Stack {
   BindingMap bindings = {};
 };
@@ -151,6 +160,7 @@ auto eval_expr(NameConstant const& expr, Stack const& stack = {})
     -> std::shared_ptr<Term>;
 
 void eval_stmt(Statement const& stmt, Stack& stack);
+void eval_stmt(Return const& stmt, Stack& stack);
 void eval_stmt(Assign const& stmt, Stack& stack);
 void eval_stmt(If const& stmt, Stack& stack);
 void eval_stmt(Expr const& stmt, Stack& stack);
