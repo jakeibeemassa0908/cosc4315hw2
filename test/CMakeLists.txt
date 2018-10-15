@@ -1,7 +1,7 @@
 add_executable (
   test_libmypython
   test_init.cpp
-  mypython/code/ast_test.cpp
+  mypython/ast_test.cpp
 )
 
 target_include_directories(test_libmypython PUBLIC ../include)
