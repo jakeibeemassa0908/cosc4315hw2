@@ -200,6 +200,17 @@ void eval_stmt(Statement const& stmt, Stack& stack) {
   return mpark::visit(visitor, stmt);
 }
 
+void eval_stmt(FunctionDef const& stmt, Stack& stack) {
+  PyFunction fun;
+  fun.def = stmt;
+
+  if (stack.call_stack.empty()) {
+    stack.globals[stmt.name] = std::make_shared<PyObj>(fun);
+  } else {
+    stack.locals[stmt.name] = std::make_shared<PyObj>(fun);
+  }
+}
+
 void eval_stmt(Return const& stmt, Stack& stack) {
   EarlyReturn er;
   er.result = eval_expr(*stmt.value, stack);

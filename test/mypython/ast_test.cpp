@@ -155,6 +155,32 @@ TEST_CASE("Evalutes num literals", "[eval_expr]") {
   REQUIRE(MyPython::cmp(result, 1337) == 0);
 }
 
+TEST_CASE("Can define functions", "[eval_stmt]") {
+  MyPython::Num num;
+  num.n = 100;
+
+  MyPython::Return ret;
+  ret.value = std::make_shared<MyPython::Expression>(num);
+
+  MyPython::FunctionDef def;
+  def.name = "foo";
+  def.body = {ret};
+
+  MyPython::Stack stack;
+
+  SECTION("Can define 0 arity function") {
+    def.args = {};
+    MyPython::eval_stmt(def, stack);
+    REQUIRE(stack.globals.count("foo") == 1);
+  }
+
+  SECTION("Can define 3 arity function") {
+    def.args = {"x", "y", "z"};
+    MyPython::eval_stmt(def, stack);
+    REQUIRE(stack.globals.count("foo") == 1);
+  }
+}
+
 TEST_CASE("Evalutes return statements", "[eval_stmt]") {
   MyPython::NameConstant nc;
   nc.value = MyPython::Singleton::true_value;
@@ -273,13 +299,13 @@ TEST_CASE("Can print expressions", "[eval_stmt]") {
   MyPython::Stack stack;
 
   SECTION("Can print one object") {
-    print.objects = { num };
+    print.objects = {num};
     eval_stmt(print, stack);
     REQUIRE(out.str() == "100\n");
   }
 
   SECTION("Can print multiple objects") {
-    print.objects = { num, num, num };
+    print.objects = {num, num, num};
     eval_stmt(print, stack);
     REQUIRE(out.str() == "100 100 100\n");
   }

@@ -15,12 +15,14 @@ struct BoolOp;
 struct BinOp;
 struct Compare;
 struct Expr;
+struct FunctionDef;
 struct If;
 struct Module;
 struct Name;
 struct NameConstant;
 struct Num;
 struct Print;
+struct PyFunction;
 struct PyInt;
 struct PyBool;
 struct PyNoneType;
@@ -30,8 +32,8 @@ struct Str;
 
 using Expression =
     mpark::variant<BoolOp, BinOp, Compare, Num, Str, NameConstant, Name>;
-using Statement = mpark::variant<Return, Assign, If, Expr, Print>;
-using PyObj = mpark::variant<PyNoneType, PyBool, PyInt, PyStr>;
+using Statement = mpark::variant<FunctionDef, Return, Assign, If, Expr, Print>;
+using PyObj = mpark::variant<PyNoneType, PyBool, PyInt, PyStr, PyFunction>;
 using BindingMap = std::map<std::string, std::shared_ptr<PyObj>>;
 
 enum class BoolOperator { and_op, or_op };
@@ -94,6 +96,12 @@ struct Expr {
   Metadata meta = {};
 };
 
+struct FunctionDef {
+  std::string name = "";
+  std::vector<std::string> args = {};
+  std::vector<Statement> body = {};
+};
+
 struct If {
   std::shared_ptr<Expression> test = nullptr;
   std::vector<Statement> body = {};
@@ -144,6 +152,10 @@ struct PyStr {
   PyStr(char const* cstr) : PyStr(std::string(cstr)) {}
 };
 
+struct PyFunction {
+  FunctionDef def = {};
+};
+
 struct Return {
   std::shared_ptr<Expression> value = nullptr;
 };
@@ -179,6 +191,7 @@ auto eval_expr(NameConstant const& expr, Stack const& stack = {})
     -> std::shared_ptr<PyObj>;
 
 void eval_stmt(Statement const& stmt, Stack& stack);
+void eval_stmt(FunctionDef const& stmt, Stack& stack);
 void eval_stmt(Return const& stmt, Stack& stack);
 void eval_stmt(Assign const& stmt, Stack& stack);
 void eval_stmt(If const& stmt, Stack& stack);
