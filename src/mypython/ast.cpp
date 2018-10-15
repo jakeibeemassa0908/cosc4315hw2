@@ -11,7 +11,7 @@ auto cmp(T1 const& a, T2 const& b) -> int {
 }
 
 template <class T>
-auto str(T const&) -> Str {
+auto str(T const&) -> PyStr {
   throw "Error converting to str";
 }
 
