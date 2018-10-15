@@ -291,12 +291,19 @@ TEST_CASE("Can print expressions", "[eval_stmt]") {
   std::stringstream out;
 
   Code::Print print;
-  print.data = std::make_shared<Code::Expression>(num);
   print.file = &out;
 
   Code::Stack stack;
 
-  eval_stmt(print, stack);
+  SECTION("Can print one object") {
+    print.objects = { num };
+    eval_stmt(print, stack);
+    REQUIRE(out.str() == "100\n");
+  }
 
-  REQUIRE(out.str() == "100\n");
+  SECTION("Can print multiple objects") {
+    print.objects = { num, num, num };
+    eval_stmt(print, stack);
+    REQUIRE(out.str() == "100 100 100\n");
+  }
 }

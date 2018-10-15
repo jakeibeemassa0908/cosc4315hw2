@@ -125,7 +125,7 @@ struct Num {
 };
 
 struct Print {
-  std::shared_ptr<Expression> data = nullptr;
+  std::vector<Expression> objects = {};
   std::ostream* file = &std::cout;
 };
 

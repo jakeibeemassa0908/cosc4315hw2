@@ -206,8 +206,17 @@ void eval_stmt(Expr const& stmt, Stack& stack) {
 }
 
 void eval_stmt(Print const& stmt, Stack& stack) {
-  auto result = *eval_expr(*stmt.data);
-  (*stmt.file) << str(result).value << "\n";
+  bool first = true;
+  for (auto&& obj : stmt.objects) {
+    auto result = *eval_expr(obj);
+    if (first) {
+      first = false;
+      (*stmt.file) << str(result).value;
+    } else {
+      (*stmt.file) << " " << str(result).value;
+    }
+  }
+  (*stmt.file) << "\n";
 }
 
 void eval_ast(Module const& ast, Stack& stack) {
